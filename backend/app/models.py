@@ -1,0 +1,70 @@
+from datetime import datetime
+from typing import Optional
+from sqlmodel import SQLModel, Field
+
+
+class Tenant(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class Agent(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    tenant_id: int
+    endpoint_id: str
+    hostname: str
+    os_type: str
+    agent_version: str
+    last_seen: datetime = Field(default_factory=datetime.utcnow)
+    health_score: int = 100
+
+
+class Event(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    tenant_id: int
+    endpoint_id: str
+    user_id: Optional[str] = None
+    event_type: str
+    severity: str
+    payload: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class RiskScore(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    tenant_id: int
+    user_id: Optional[str] = None
+    endpoint_id: Optional[str] = None
+    score: float
+    insider_probability: float
+    reason: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class Incident(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    tenant_id: int
+    endpoint_id: str
+    title: str
+    mitre_technique: str
+    severity: str
+    status: str = "open"
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class Policy(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    tenant_id: int
+    name: str
+    enabled: bool = True
+    definition: str
+
+
+class Command(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    tenant_id: int
+    endpoint_id: str
+    action: str
+    status: str = "pending"
+    created_at: datetime = Field(default_factory=datetime.utcnow)

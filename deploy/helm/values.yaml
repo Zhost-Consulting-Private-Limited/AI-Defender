@@ -1,0 +1,4 @@
+api:
+  image: ghcr.io/example/security-platform-api:1.0.0
+  replicaCount: 3
+  servicePort: 80
