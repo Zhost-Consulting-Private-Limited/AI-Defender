@@ -13,6 +13,8 @@ class Agent(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     tenant_id: int = Field(index=True)
     endpoint_id: str = Field(index=True, unique=True)
+    tenant_id: int
+    endpoint_id: str
     hostname: str
     os_type: str
     agent_version: str
@@ -29,17 +31,26 @@ class Event(SQLModel, table=True):
     severity: str
     payload: str
     created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    tenant_id: int
+    endpoint_id: str
+    user_id: Optional[str] = None
+    event_type: str
+    severity: str
+    payload: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class RiskScore(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     tenant_id: int = Field(index=True)
+    tenant_id: int
     user_id: Optional[str] = None
     endpoint_id: Optional[str] = None
     score: float
     insider_probability: float
     reason: str
     created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class Incident(SQLModel, table=True):
@@ -50,12 +61,19 @@ class Incident(SQLModel, table=True):
     mitre_technique: str
     severity: str
     status: str = Field(default="open", index=True)
+    tenant_id: int
+    endpoint_id: str
+    title: str
+    mitre_technique: str
+    severity: str
+    status: str = "open"
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class Policy(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     tenant_id: int = Field(index=True)
+    tenant_id: int
     name: str
     enabled: bool = True
     definition: str
@@ -85,3 +103,8 @@ class AuditLog(SQLModel, table=True):
     resource_type: str
     resource_id: str
     created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    tenant_id: int
+    endpoint_id: str
+    action: str
+    status: str = "pending"
+    created_at: datetime = Field(default_factory=datetime.utcnow)

@@ -12,6 +12,12 @@ from .schemas import AgentEnrollRequest, EventBatch, PolicyInput, CommandInput
 from .services import process_events, dequeue_commands, create_hourly_report, add_audit
 
 app = FastAPI(title="Behavioral Security Platform API", version="2.1.0")
+from .db import init_db, get_session
+from .models import Tenant, Agent, Event, RiskScore, Incident, Policy, Command
+from .schemas import AgentEnrollRequest, EventBatch, PolicyInput, CommandInput
+from .services import process_events, dequeue_commands
+
+app = FastAPI(title="Behavioral Security Platform API", version="2.0.0")
 templates = Jinja2Templates(directory="backend/app/templates")
 app.mount("/static", StaticFiles(directory="backend/app/static"), name="static")
 
@@ -22,6 +28,7 @@ def startup() -> None:
 
 
 @app.post("/api/v1/tenants", dependencies=[Depends(require_role("admin"))])
+@app.post("/api/v1/tenants")
 def create_tenant(name: str, session: Session = Depends(get_session)):
     t = Tenant(name=name)
     session.add(t)
@@ -33,6 +40,10 @@ def create_tenant(name: str, session: Session = Depends(get_session)):
 
 
 @app.post("/api/v1/agents/enroll", dependencies=[Depends(require_role("agent", "admin"))])
+    return t
+
+
+@app.post("/api/v1/agents/enroll")
 def enroll_agent(payload: AgentEnrollRequest, session: Session = Depends(get_session)):
     agent = session.exec(select(Agent).where(Agent.endpoint_id == payload.endpoint_id)).first()
     if agent:
@@ -48,12 +59,14 @@ def enroll_agent(payload: AgentEnrollRequest, session: Session = Depends(get_ses
 
 
 @app.post("/api/v1/events", dependencies=[Depends(require_role("agent", "admin"))])
+@app.post("/api/v1/events")
 def ingest_events(batch: EventBatch, session: Session = Depends(get_session)):
     incidents = process_events(session, batch.tenant_id, batch.endpoint_id, [e.model_dump() for e in batch.events])
     return {"status": "accepted", "incidents_created": len(incidents)}
 
 
 @app.get("/api/v1/agents/{endpoint_id}/commands", dependencies=[Depends(require_role("agent", "admin"))])
+@app.get("/api/v1/agents/{endpoint_id}/commands")
 def poll_commands(endpoint_id: str, session: Session = Depends(get_session)):
     cmds = dequeue_commands(session, endpoint_id)
     return [{"id": c.id, "action": c.action, "status": c.status} for c in cmds]
@@ -64,6 +77,10 @@ def create_command(cmd: CommandInput, session: Session = Depends(get_session)):
     c = Command(**cmd.model_dump())
     session.add(c)
     add_audit(session, cmd.tenant_id, "analyst", "create_command", "endpoint", cmd.endpoint_id)
+@app.post("/api/v1/commands")
+def create_command(cmd: CommandInput, session: Session = Depends(get_session)):
+    c = Command(**cmd.model_dump())
+    session.add(c)
     session.commit()
     session.refresh(c)
     return c
@@ -74,12 +91,17 @@ def create_policy(payload: PolicyInput, session: Session = Depends(get_session))
     p = Policy(tenant_id=payload.tenant_id, name=payload.name, enabled=payload.enabled, definition=str(payload.definition))
     session.add(p)
     add_audit(session, payload.tenant_id, "admin", "create_policy", "policy", payload.name)
+@app.post("/api/v1/policies")
+def create_policy(payload: PolicyInput, session: Session = Depends(get_session)):
+    p = Policy(tenant_id=payload.tenant_id, name=payload.name, enabled=payload.enabled, definition=str(payload.definition))
+    session.add(p)
     session.commit()
     session.refresh(p)
     return p
 
 
 @app.get("/api/v1/dashboard/summary", dependencies=[Depends(require_role("analyst", "admin"))])
+@app.get("/api/v1/dashboard/summary")
 def summary(tenant_id: int, session: Session = Depends(get_session)):
     agents = session.exec(select(Agent).where(Agent.tenant_id == tenant_id)).all()
     open_incidents = session.exec(select(Incident).where(Incident.tenant_id == tenant_id, Incident.status == "open")).all()
@@ -104,6 +126,16 @@ def hourly_report(tenant_id: int, session: Session = Depends(get_session)):
 def list_reports(tenant_id: int, session: Session = Depends(get_session)):
     reports = session.exec(select(HourlyReport).where(HourlyReport.tenant_id == tenant_id).order_by(HourlyReport.generated_at.desc())).all()
     return reports[:50]
+@app.post("/api/v1/reports/hourly")
+def hourly_report(tenant_id: int, session: Session = Depends(get_session)):
+    latest_incidents = session.exec(select(Incident).where(Incident.tenant_id == tenant_id).order_by(Incident.created_at.desc())).all()[:20]
+    return {
+        "tenant_id": tenant_id,
+        "generated_at": datetime.utcnow().isoformat(),
+        "anomalies": len(latest_incidents),
+        "mitre_techniques": sorted(list({i.mitre_technique for i in latest_incidents})),
+        "recommended_action": "Run containment playbook for critical/high incidents and review IAM anomalies.",
+    }
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -112,11 +144,13 @@ def dashboard(request: Request):
 
 
 @app.get("/api/v1/incidents", dependencies=[Depends(require_role("analyst", "admin"))])
+@app.get("/api/v1/incidents")
 def list_incidents(tenant_id: int, session: Session = Depends(get_session)):
     return session.exec(select(Incident).where(Incident.tenant_id == tenant_id).order_by(Incident.created_at.desc())).all()
 
 
 @app.patch("/api/v1/incidents/{incident_id}/status", dependencies=[Depends(require_role("analyst", "admin"))])
+@app.patch("/api/v1/incidents/{incident_id}/status")
 def update_incident_status(incident_id: int, status: str, session: Session = Depends(get_session)):
     incident = session.get(Incident, incident_id)
     if not incident:
@@ -132,3 +166,5 @@ def update_incident_status(incident_id: int, status: str, session: Session = Dep
 def audit_logs(tenant_id: int, session: Session = Depends(get_session)):
     logs = session.exec(select(AuditLog).where(AuditLog.tenant_id == tenant_id).order_by(AuditLog.created_at.desc())).all()
     return logs[:200]
+    session.commit()
+    return {"ok": True}
