@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: security-platform-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: security-platform-api
+  template:
+    metadata:
+      labels:
+        app: security-platform-api
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/example/security-platform-api:1.0.0
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: platform-secrets
+                  key: database_url
+            - name: KAFKA_BROKERS
+              value: kafka:9092
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: security-platform-api
+spec:
+  selector:
+    app: security-platform-api
+  ports:
+    - port: 80
+      targetPort: 8080

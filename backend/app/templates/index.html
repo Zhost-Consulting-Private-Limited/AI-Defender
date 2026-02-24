@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>SOC Dashboard</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <h1>Behavioral Security SOC Dashboard</h1>
+  <div class="controls">
+    <label>Tenant ID: <input id="tenant" value="1"/></label>
+    <button onclick="refreshAll()">Refresh</button>
+  </div>
+  <div class="grid">
+    <div class="card"><h3>Agents</h3><p id="agent_count">0</p></div>
+    <div class="card"><h3>Open Incidents</h3><p id="open_incidents">0</p></div>
+    <div class="card"><h3>Average Risk</h3><p id="avg_risk">0</p></div>
+  </div>
+  <h2>Top Risk Events</h2>
+  <table id="risks"><thead><tr><th>Endpoint</th><th>Score</th><th>Reason</th><th>Time</th></tr></thead><tbody></tbody></table>
+  <h2>Incidents</h2>
+  <table id="incidents"><thead><tr><th>ID</th><th>Title</th><th>Severity</th><th>Status</th><th>Action</th></tr></thead><tbody></tbody></table>
+<script src="/static/app.js"></script>
+</body>
+</html>
