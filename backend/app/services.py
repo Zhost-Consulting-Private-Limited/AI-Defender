@@ -11,8 +11,11 @@ MITRE_MAP = {
     "windows_privilege_escalation": "T1078",
     "macos_sensitive_file_access": "T1005",
 }
+<<<<<<< codex/design-enterprise-behavioral-security-platform
+=======
 from sqlmodel import Session, select
 from .models import Event, RiskScore, Incident, Agent, Command
+>>>>>>> main
 
 
 def calculate_risk(event_type: str, severity: str) -> tuple[float, float, str]:
@@ -59,6 +62,8 @@ def process_events(session: Session, tenant_id: int, endpoint_id: str, events: l
                 reason=reason,
             )
         )
+<<<<<<< codex/design-enterprise-behavioral-security-platform
+=======
         rs = RiskScore(
             tenant_id=tenant_id,
             user_id=e.get("user_id"),
@@ -68,13 +73,17 @@ def process_events(session: Session, tenant_id: int, endpoint_id: str, events: l
             reason=reason,
         )
         session.add(rs)
+>>>>>>> main
         if score >= 80:
             incident = Incident(
                 tenant_id=tenant_id,
                 endpoint_id=endpoint_id,
                 title=f"High risk event: {e['event_type']}",
                 mitre_technique=MITRE_MAP.get(e["event_type"], "T1078"),
+<<<<<<< codex/design-enterprise-behavioral-security-platform
+=======
                 mitre_technique="T1078",
+>>>>>>> main
                 severity=e["severity"],
             )
             session.add(incident)
@@ -87,11 +96,14 @@ def process_events(session: Session, tenant_id: int, endpoint_id: str, events: l
         session.add(agent)
 
     add_audit(session, tenant_id, "agent", "event_ingest", "endpoint", endpoint_id)
+<<<<<<< codex/design-enterprise-behavioral-security-platform
+=======
     agent = session.exec(select(Agent).where(Agent.endpoint_id == endpoint_id)).first()
     if agent:
         agent.last_seen = agent.last_seen.utcnow()
         agent.health_score = max(1, 100 - len(created) * 10)
         session.add(agent)
+>>>>>>> main
     session.commit()
     return created
 
