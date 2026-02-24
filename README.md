@@ -18,12 +18,23 @@ pip install -r backend/requirements.txt
 uvicorn backend.app.main:app --reload
 ```
 
+Open dashboard at `http://127.0.0.1:8000` and use API key `analyst-key`.
 Open dashboard at `http://127.0.0.1:8000`.
 
 ### 2) Run Endpoint Agent
 
 ```bash
 cd agent-go
+go run ./cmd/agent --api http://127.0.0.1:8000 --tenant 1 --endpoint endpoint-001
+```
+
+### 3) Default API key roles
+
+- `admin-key`
+- `analyst-key`
+- `agent-key`
+
+Override with env var `API_KEYS="key1:admin,key2:analyst,key3:agent"`.
 go mod tidy
 go run ./cmd/agent --api http://127.0.0.1:8000 --tenant 1 --endpoint endpoint-001
 ```
