@@ -1,0 +1,102 @@
+openapi: 3.0.3
+info:
+  title: Behavioral Intelligence & Endpoint Security API
+  version: 1.0.0
+servers:
+  - url: https://api.security-platform.local
+security:
+  - bearerAuth: []
+paths:
+  /v1/agents/enroll:
+    post:
+      summary: Enroll endpoint agent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentEnrollRequest'
+      responses:
+        '201':
+          description: Agent enrolled
+  /v1/events:
+    post:
+      summary: Ingest endpoint events
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventBatch'
+      responses:
+        '202':
+          description: Accepted
+  /v1/risk/users/{userId}:
+    get:
+      summary: Fetch current user risk profile
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: User risk profile
+  /v1/incidents:
+    get:
+      summary: List incidents
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string }
+      responses:
+        '200':
+          description: Incident list
+  /v1/reports/hourly/{tenantId}:
+    post:
+      summary: Generate hourly intelligence report
+      parameters:
+        - in: path
+          name: tenantId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '202':
+          description: Report generation started
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    AgentEnrollRequest:
+      type: object
+      required: [tenant_id, endpoint_id, hostname, os_type, agent_version, csr]
+      properties:
+        tenant_id: { type: string, format: uuid }
+        endpoint_id: { type: string, format: uuid }
+        hostname: { type: string }
+        os_type: { type: string, enum: [windows, macos, linux] }
+        agent_version: { type: string }
+        csr: { type: string }
+    EventBatch:
+      type: object
+      required: [tenant_id, endpoint_id, sequence_id, events]
+      properties:
+        tenant_id: { type: string, format: uuid }
+        endpoint_id: { type: string, format: uuid }
+        sequence_id: { type: integer }
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
+    Event:
+      type: object
+      required: [event_type, event_time, payload]
+      properties:
+        user_id: { type: string, format: uuid }
+        event_type: { type: string }
+        event_time: { type: string, format: date-time }
+        payload: { type: object, additionalProperties: true }
+        sha256: { type: string }
