@@ -34,11 +34,3 @@ class CommandInput(BaseModel):
     tenant_id: int
     endpoint_id: str
     action: str
-
-
-class SIEMWebhookInput(BaseModel):
-    tenant_id: int
-    name: str
-    endpoint_url: str
-    enabled: bool = True
-    secret: Optional[str] = None

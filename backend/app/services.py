@@ -1,12 +1,7 @@
-import hashlib
-import hmac
 import json
 from datetime import datetime
-
-import httpx
 from sqlmodel import Session, select
-
-from .models import Event, RiskScore, Incident, Agent, Command, HourlyReport, AuditLog, SIEMWebhook
+from .models import Event, RiskScore, Incident, Agent, Command, HourlyReport, AuditLog
 
 MITRE_MAP = {
     "privilege_escalation": "T1078",
@@ -16,6 +11,8 @@ MITRE_MAP = {
     "windows_privilege_escalation": "T1078",
     "macos_sensitive_file_access": "T1005",
 }
+from sqlmodel import Session, select
+from .models import Event, RiskScore, Incident, Agent, Command
 
 
 def calculate_risk(event_type: str, severity: str) -> tuple[float, float, str]:
@@ -37,48 +34,6 @@ def add_audit(session: Session, tenant_id: int, actor: str, action: str, resourc
             resource_id=resource_id,
         )
     )
-
-
-def _build_siem_headers(secret: str | None, payload: str) -> dict[str, str]:
-    headers = {"Content-Type": "application/json"}
-    if secret:
-        digest = hmac.new(secret.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
-        headers["X-Signature-SHA256"] = digest
-    return headers
-
-
-def dispatch_siem_webhooks(session: Session, tenant_id: int, incidents: list[Incident]) -> int:
-    if not incidents:
-        return 0
-
-    webhooks = session.exec(select(SIEMWebhook).where(SIEMWebhook.tenant_id == tenant_id, SIEMWebhook.enabled == True)).all()
-    sent = 0
-    for hook in webhooks:
-        payload = json.dumps(
-            {
-                "tenant_id": tenant_id,
-                "event": "incidents.created",
-                "generated_at": datetime.utcnow().isoformat(),
-                "incidents": [
-                    {
-                        "endpoint_id": i.endpoint_id,
-                        "title": i.title,
-                        "severity": i.severity,
-                        "mitre_technique": i.mitre_technique,
-                    }
-                    for i in incidents
-                ],
-            }
-        )
-        headers = _build_siem_headers(hook.secret, payload)
-        try:
-            with httpx.Client(timeout=2.5) as client:
-                resp = client.post(hook.endpoint_url, content=payload, headers=headers)
-                if 200 <= resp.status_code < 300:
-                    sent += 1
-        except Exception:
-            pass
-    return sent
 
 
 def process_events(session: Session, tenant_id: int, endpoint_id: str, events: list[dict]):
@@ -104,12 +59,22 @@ def process_events(session: Session, tenant_id: int, endpoint_id: str, events: l
                 reason=reason,
             )
         )
+        rs = RiskScore(
+            tenant_id=tenant_id,
+            user_id=e.get("user_id"),
+            endpoint_id=endpoint_id,
+            score=score,
+            insider_probability=insider,
+            reason=reason,
+        )
+        session.add(rs)
         if score >= 80:
             incident = Incident(
                 tenant_id=tenant_id,
                 endpoint_id=endpoint_id,
                 title=f"High risk event: {e['event_type']}",
                 mitre_technique=MITRE_MAP.get(e["event_type"], "T1078"),
+                mitre_technique="T1078",
                 severity=e["severity"],
             )
             session.add(incident)
@@ -122,9 +87,11 @@ def process_events(session: Session, tenant_id: int, endpoint_id: str, events: l
         session.add(agent)
 
     add_audit(session, tenant_id, "agent", "event_ingest", "endpoint", endpoint_id)
-    delivered = dispatch_siem_webhooks(session, tenant_id, created)
-    if delivered > 0:
-        add_audit(session, tenant_id, "system", "siem_dispatch", "integration", str(delivered))
+    agent = session.exec(select(Agent).where(Agent.endpoint_id == endpoint_id)).first()
+    if agent:
+        agent.last_seen = agent.last_seen.utcnow()
+        agent.health_score = max(1, 100 - len(created) * 10)
+        session.add(agent)
     session.commit()
     return created
 

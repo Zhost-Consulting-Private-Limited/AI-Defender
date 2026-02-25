@@ -4,7 +4,6 @@ import (
 	"flag"
 	"log"
 	"os"
-	"path/filepath"
 	"runtime"
 	"time"
 
@@ -45,11 +44,22 @@ func main() {
 			}
 		}
 
+	cli := client.New(*apiURL, *tenantID, *endpointID)
+	if err := cli.Enroll(hostname, runtime.GOOS, "2.0.0"); err != nil {
+		log.Fatalf("enrollment failed: %v", err)
+	}
+
+	ticker := time.NewTicker(*interval)
+	for {
+		events := collector.CollectPlatformEvents()
+		events = append(events, collector.HealthEvent())
+		if err := cli.SendEvents(events); err != nil {
+			log.Printf("send failed: %v", err)
+		}
 		cmds, err := cli.PollCommands()
 		if err == nil && len(cmds) > 0 {
 			log.Printf("received %d command(s)", len(cmds))
 		}
-
 		<-ticker.C
 	}
 }

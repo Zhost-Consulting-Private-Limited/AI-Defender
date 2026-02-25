@@ -1,25 +1,15 @@
 openapi: 3.0.3
 info:
-  title: Behavioral Security Platform API
-  version: 2.2.0
+  title: Behavioral Intelligence & Endpoint Security API
+  version: 1.0.0
 servers:
-  - url: http://127.0.0.1:8000
+  - url: https://api.security-platform.local
 security:
-  - apiKeyAuth: []
+  - bearerAuth: []
 paths:
-  /api/v1/tenants:
+  /v1/agents/enroll:
     post:
-      summary: Create tenant
-      parameters:
-        - in: query
-          name: name
-          required: true
-          schema: { type: string }
-      responses:
-        '200': { description: Tenant created }
-  /api/v1/agents/enroll:
-    post:
-      summary: Enroll or update endpoint agent
+      summary: Enroll endpoint agent
       requestBody:
         required: true
         content:
@@ -27,10 +17,11 @@ paths:
             schema:
               $ref: '#/components/schemas/AgentEnrollRequest'
       responses:
-        '200': { description: Agent enrolled }
-  /api/v1/events:
+        '201':
+          description: Agent enrolled
+  /v1/events:
     post:
-      summary: Ingest endpoint event batch
+      summary: Ingest endpoint events
       requestBody:
         required: true
         content:
@@ -38,188 +29,74 @@ paths:
             schema:
               $ref: '#/components/schemas/EventBatch'
       responses:
-        '200': { description: Event batch accepted }
-  /api/v1/agents/{endpoint_id}/commands:
+        '202':
+          description: Accepted
+  /v1/risk/users/{userId}:
     get:
-      summary: Poll pending commands for endpoint
+      summary: Fetch current user risk profile
       parameters:
         - in: path
-          name: endpoint_id
+          name: userId
           required: true
-          schema: { type: string }
+          schema: { type: string, format: uuid }
       responses:
-        '200': { description: Commands returned }
-  /api/v1/commands:
-    post:
-      summary: Create command for endpoint
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CommandInput'
-      responses:
-        '200': { description: Command created }
-  /api/v1/policies:
-    post:
-      summary: Create policy
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PolicyInput'
-      responses:
-        '200': { description: Policy created }
-  /api/v1/integrations/siem/webhooks:
-    post:
-      summary: Add SIEM webhook integration
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SIEMWebhookInput'
-      responses:
-        '200': { description: Webhook created }
-    get:
-      summary: List SIEM webhooks
-      parameters:
-        - in: query
-          name: tenant_id
-          required: true
-          schema: { type: integer }
-      responses:
-        '200': { description: Webhook list }
-  /api/v1/integrations/siem/webhooks/{webhook_id}:
-    delete:
-      summary: Delete SIEM webhook
-      parameters:
-        - in: path
-          name: webhook_id
-          required: true
-          schema: { type: integer }
-      responses:
-        '200': { description: Deleted }
-  /api/v1/dashboard/summary:
-    get:
-      summary: Dashboard summary
-      parameters:
-        - in: query
-          name: tenant_id
-          required: true
-          schema: { type: integer }
-      responses:
-        '200': { description: Summary }
-  /api/v1/incidents:
+        '200':
+          description: User risk profile
+  /v1/incidents:
     get:
       summary: List incidents
       parameters:
         - in: query
-          name: tenant_id
-          required: true
-          schema: { type: integer }
-      responses:
-        '200': { description: Incident list }
-  /api/v1/incidents/{incident_id}/status:
-    patch:
-      summary: Update incident status
-      parameters:
-        - in: path
-          name: incident_id
-          required: true
-          schema: { type: integer }
-        - in: query
           name: status
-          required: true
           schema: { type: string }
       responses:
-        '200': { description: Updated }
-  /api/v1/reports/hourly:
+        '200':
+          description: Incident list
+  /v1/reports/hourly/{tenantId}:
     post:
-      summary: Generate hourly report
+      summary: Generate hourly intelligence report
       parameters:
-        - in: query
-          name: tenant_id
+        - in: path
+          name: tenantId
           required: true
-          schema: { type: integer }
+          schema: { type: string, format: uuid }
       responses:
-        '200': { description: Report generated }
-  /api/v1/reports:
-    get:
-      summary: List hourly reports
-      parameters:
-        - in: query
-          name: tenant_id
-          required: true
-          schema: { type: integer }
-      responses:
-        '200': { description: Report list }
-  /api/v1/audit:
-    get:
-      summary: List audit logs
-      parameters:
-        - in: query
-          name: tenant_id
-          required: true
-          schema: { type: integer }
-      responses:
-        '200': { description: Audit entries }
+        '202':
+          description: Report generation started
 components:
   securitySchemes:
-    apiKeyAuth:
-      type: apiKey
-      in: header
-      name: X-API-Key
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     AgentEnrollRequest:
       type: object
-      required: [tenant_id, endpoint_id, hostname, os_type, agent_version]
+      required: [tenant_id, endpoint_id, hostname, os_type, agent_version, csr]
       properties:
-        tenant_id: { type: integer }
-        endpoint_id: { type: string }
+        tenant_id: { type: string, format: uuid }
+        endpoint_id: { type: string, format: uuid }
         hostname: { type: string }
         os_type: { type: string, enum: [windows, macos, linux] }
         agent_version: { type: string }
-    EventInput:
-      type: object
-      required: [event_type, severity, payload]
-      properties:
-        user_id: { type: string }
-        event_type: { type: string }
-        severity: { type: string, enum: [low, medium, high, critical] }
-        payload: { type: object, additionalProperties: true }
+        csr: { type: string }
     EventBatch:
       type: object
-      required: [tenant_id, endpoint_id, events]
+      required: [tenant_id, endpoint_id, sequence_id, events]
       properties:
-        tenant_id: { type: integer }
-        endpoint_id: { type: string }
+        tenant_id: { type: string, format: uuid }
+        endpoint_id: { type: string, format: uuid }
+        sequence_id: { type: integer }
         events:
           type: array
           items:
-            $ref: '#/components/schemas/EventInput'
-    CommandInput:
+            $ref: '#/components/schemas/Event'
+    Event:
       type: object
-      required: [tenant_id, endpoint_id, action]
+      required: [event_type, event_time, payload]
       properties:
-        tenant_id: { type: integer }
-        endpoint_id: { type: string }
-        action: { type: string }
-    PolicyInput:
-      type: object
-      required: [tenant_id, name, definition]
-      properties:
-        tenant_id: { type: integer }
-        name: { type: string }
-        enabled: { type: boolean }
-        definition: { type: object, additionalProperties: true }
-    SIEMWebhookInput:
-      type: object
-      required: [tenant_id, name, endpoint_url]
-      properties:
-        tenant_id: { type: integer }
-        name: { type: string }
-        endpoint_url: { type: string }
-        enabled: { type: boolean }
-        secret: { type: string }
+        user_id: { type: string, format: uuid }
+        event_type: { type: string }
+        event_time: { type: string, format: date-time }
+        payload: { type: object, additionalProperties: true }
+        sha256: { type: string }

@@ -7,6 +7,7 @@ This file is the source of truth for feature delivery status.
 - ⏳ **To Do** = not yet implemented / production-hardening pending
 
 Last updated: 2026-02-25
+Last updated: 2026-02-24
 
 ---
 
@@ -31,6 +32,7 @@ Last updated: 2026-02-25
 - ✅ Audit log persistence model and write hooks.
 - ✅ Hourly report generation endpoint + storage model.
 - ✅ OpenAPI contract aligned to implemented `/api/v1/*` API and API-key security model.
+- 🔄 OpenAPI contract exists but needs full alignment with implemented `/api/v1/*` API and security model.
 - ⏳ Production-grade auth (OIDC/SAML/SCIM, MFA flows).
 - ⏳ Multi-tenant hard isolation controls (RLS, schema/db isolation options).
 - ⏳ Idempotency, pagination, rate limiting, and API versioning hardening.
@@ -83,6 +85,7 @@ Last updated: 2026-02-25
 - ⏳ Active Directory / Azure AD / Okta integration.
 - 🔄 SIEM webhook connector prototype implemented (generic webhook target).
 - ⏳ Vendor-specific SIEM connectors (Splunk/Sentinel/QRadar).
+- ⏳ SIEM connectors (Splunk/Sentinel/QRadar).
 - ⏳ SOAR integrations.
 - ⏳ Jira / ServiceNow incident workflows.
 - ⏳ Threat intelligence feed ingestion.
@@ -113,6 +116,12 @@ Last updated: 2026-02-25
 3. Add mTLS foundation for agent-server trust bootstrap.
 4. Expand dashboard with ATT&CK + compliance panes.
 5. Add vendor-specific SIEM connectors (Splunk/Sentinel/QRadar).
+1. Align and regenerate `api/openapi.yaml` to match runtime endpoints + auth model.
+2. Replace synthetic health signals with real system metrics collectors.
+3. Add migration tooling + production DB configuration.
+4. Add SIEM webhook/connector prototype (first integration).
+5. Add mTLS foundation for agent-server trust bootstrap.
+6. Expand dashboard with ATT&CK + compliance panes.
 
 ---
 
