@@ -1,5 +1,6 @@
 from typing import Any, Optional
-from pydantic import BaseModel
+
+from pydantic import BaseModel, Field
 
 
 class AgentEnrollRequest(BaseModel):
@@ -41,3 +42,13 @@ class SIEMForwardRequest(BaseModel):
     provider: str
     webhook_url: str
     max_incidents: int = 25
+
+
+class IncidentStatusUpdate(BaseModel):
+    status: str = Field(pattern="^(open|in_progress|closed)$")
+
+
+class IncidentBulkStatusUpdate(BaseModel):
+    tenant_id: int
+    incident_ids: list[int]
+    status: str = Field(pattern="^(open|in_progress|closed)$")

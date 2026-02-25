@@ -1,7 +1,9 @@
 body { font-family: Arial, sans-serif; margin: 20px; }
 .grid { display: flex; gap: 12px; margin: 20px 0; }
-.card { border: 1px solid #ddd; padding: 16px; min-width: 180px; }
+.card { border: 1px solid #ddd; padding: 16px; min-width: 180px; border-radius: 6px; background: #fafafa; }
 table { width: 100%; border-collapse: collapse; margin-top: 10px; }
 th, td { border: 1px solid #ddd; padding: 8px; }
-.controls { margin-bottom: 10px; }
+.controls { margin-bottom: 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 button { cursor: pointer; }
+.errors { color: #b00020; min-height: 20px; }
+.incident-filters, .incident-bulk { margin-top: 6px; }
