@@ -83,7 +83,7 @@ Last updated: 2026-02-25
 - 🔄 API foundation supports integration extension.
 - ⏳ Active Directory / Azure AD / Okta integration.
 - 🔄 SIEM webhook connector prototype implemented (generic webhook target).
-- ⏳ Vendor-specific SIEM connectors (Splunk/Sentinel/QRadar).
+- 🔄 Vendor-specific SIEM connector support started via normalized webhook forwarding endpoint (provider-tagged payload for Splunk/Sentinel/QRadar adapters).
 - ⏳ SIEM connectors (Splunk/Sentinel/QRadar).
 - ⏳ SOAR integrations.
 - ⏳ Jira / ServiceNow incident workflows.
@@ -123,3 +123,5 @@ Last updated: 2026-02-25
 - 2026-02-25: Marked OpenAPI alignment as complete and SIEM webhook connector prototype as in progress.
 - 2026-02-25: Replaced randomized endpoint health telemetry with runtime-derived metrics in the Go agent.
 - 2026-02-25: Added Alembic migration scaffolding, baseline schema migration, and DATABASE_URL runtime configuration.
+
+- 2026-02-25: Added SIEM forwarding API endpoint and payload builder for provider-tagged webhook delivery.

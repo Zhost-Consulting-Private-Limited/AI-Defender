@@ -34,3 +34,10 @@ class CommandInput(BaseModel):
     tenant_id: int
     endpoint_id: str
     action: str
+
+
+class SIEMForwardRequest(BaseModel):
+    tenant_id: int
+    provider: str
+    webhook_url: str
+    max_incidents: int = 25

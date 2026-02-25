@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -9,8 +9,8 @@ from sqlmodel import Session, select
 from .auth import require_role
 from .db import get_session, init_db
 from .models import Agent, Command, HourlyReport, Incident, Policy, RiskScore, Tenant
-from .schemas import AgentEnrollRequest, CommandInput, EventBatch, PolicyInput
-from .services import add_audit, create_hourly_report, dequeue_commands, process_events
+from .schemas import AgentEnrollRequest, CommandInput, EventBatch, PolicyInput, SIEMForwardRequest
+from .services import add_audit, create_hourly_report, dequeue_commands, forward_incidents_to_siem, process_events
 
 app = FastAPI(title="Behavioral Security Platform API", version="2.2.0")
 templates = Jinja2Templates(directory="backend/app/templates")
@@ -99,6 +99,20 @@ def summary(tenant_id: int, session: Session = Depends(get_session)):
             for r in risk[:10]
         ],
     }
+
+
+@app.post("/api/v1/integrations/siem/forward", dependencies=[Depends(require_role("analyst", "admin"))])
+def forward_siem(payload: SIEMForwardRequest, session: Session = Depends(get_session)):
+    try:
+        return forward_incidents_to_siem(
+            session,
+            payload.tenant_id,
+            payload.provider,
+            payload.webhook_url,
+            payload.max_incidents,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"SIEM forward failed: {exc}") from exc
 
 
 @app.post("/api/v1/reports/hourly", dependencies=[Depends(require_role("analyst", "admin"))])

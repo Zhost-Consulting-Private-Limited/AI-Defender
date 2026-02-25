@@ -1,4 +1,6 @@
 import json
+
+import httpx
 from datetime import datetime
 
 from sqlmodel import Session, select
@@ -93,6 +95,56 @@ def dequeue_commands(session: Session, endpoint_id: str):
     session.commit()
     return cmds
 
+
+
+def build_siem_payload(tenant_id: int, provider: str, incidents: list[Incident]) -> dict:
+    normalized_provider = provider.strip().lower()
+    records = [
+        {
+            "id": i.id,
+            "endpoint_id": i.endpoint_id,
+            "title": i.title,
+            "severity": i.severity,
+            "mitre_technique": i.mitre_technique,
+            "status": i.status,
+            "created_at": i.created_at.isoformat(),
+        }
+        for i in incidents
+    ]
+    return {
+        "provider": normalized_provider,
+        "tenant_id": tenant_id,
+        "sent_at": datetime.utcnow().isoformat(),
+        "incident_count": len(records),
+        "incidents": records,
+    }
+
+
+def forward_incidents_to_siem(
+    session: Session,
+    tenant_id: int,
+    provider: str,
+    webhook_url: str,
+    max_incidents: int = 25,
+) -> dict:
+    limit = max(1, min(max_incidents, 100))
+    incidents = session.exec(
+        select(Incident).where(Incident.tenant_id == tenant_id).order_by(Incident.created_at.desc())
+    ).all()[:limit]
+
+    payload = build_siem_payload(tenant_id, provider, incidents)
+    response = httpx.post(webhook_url, json=payload, timeout=10.0)
+    response.raise_for_status()
+
+    add_audit(session, tenant_id, "analyst", "forward_siem", "tenant", str(tenant_id))
+    session.commit()
+
+    return {
+        "status": "forwarded",
+        "provider": provider.strip().lower(),
+        "sent": len(incidents),
+        "webhook_status": response.status_code,
+    }
 
 def create_hourly_report(session: Session, tenant_id: int) -> dict:
     latest_incidents = session.exec(

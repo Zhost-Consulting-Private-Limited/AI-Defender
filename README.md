@@ -59,3 +59,4 @@ go run ./cmd/agent --api http://127.0.0.1:8000 --tenant 1 --endpoint endpoint-00
 - `POST /api/v1/commands`
 - `GET /api/v1/agents/{endpoint_id}/commands`
 - `POST /api/v1/reports/hourly?tenant_id={id}`
+- `POST /api/v1/integrations/siem/forward`
