@@ -6,7 +6,7 @@ This file is the source of truth for feature delivery status.
 - 🔄 **In Progress** = partially implemented
 - ⏳ **To Do** = not yet implemented / production-hardening pending
 
-Last updated: 2026-02-25
+Last updated: 2026-02-26
 
 ---
 
@@ -110,7 +110,7 @@ Last updated: 2026-02-25
 
 ## Immediate Next Priorities (Execution Queue)
 
-1. Harden production DB configuration profiles and rollout documentation.
+1. ✅ Hardened production DB configuration profiles and added rollout documentation.
 2. Add mTLS foundation for agent-server trust bootstrap.
 3. Expand dashboard with ATT&CK + compliance panes.
 4. Add vendor-specific SIEM connectors (Splunk/Sentinel/QRadar).
@@ -125,3 +125,5 @@ Last updated: 2026-02-25
 - 2026-02-25: Added Alembic migration scaffolding, baseline schema migration, and DATABASE_URL runtime configuration.
 
 - 2026-02-25: Added SIEM forwarding API endpoint and payload builder for provider-tagged webhook delivery.
+
+- 2026-02-26: Hardened backend DB environment profiles (`APP_ENV`, non-dev sqlite guardrails, SSL/pool defaults) and added rollout runbook.
