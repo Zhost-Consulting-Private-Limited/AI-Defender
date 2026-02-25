@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"os"
+	"path/filepath"
 	"runtime"
 	"time"
 
@@ -22,8 +23,9 @@ func main() {
 	queuePath := filepath.Join(os.TempDir(), "agent_event_queue.json")
 	queue := client.NewFileQueue(queuePath)
 	cli := client.New(*apiURL, *tenantID, *endpointID)
-	if err := cli.Enroll(hostname, runtime.GOOS, "2.1.0"); err != nil {
-		log.Printf("enrollment failed, continue offline mode: %v", err)
+
+	if err := cli.Enroll(hostname, runtime.GOOS, "2.2.0"); err != nil {
+		log.Printf("enrollment failed, continuing in offline mode: %v", err)
 	}
 
 	ticker := time.NewTicker(*interval)
@@ -37,29 +39,19 @@ func main() {
 		}
 
 		pending, err := queue.Drain(100)
-		if err == nil && len(pending) > 0 {
+		if err != nil {
+			log.Printf("queue drain failed: %v", err)
+		} else if len(pending) > 0 {
 			if err := cli.SendEvents(pending); err != nil {
 				_ = queue.Enqueue(pending)
 				log.Printf("send failed, queued for retry: %v", err)
 			}
 		}
 
-	cli := client.New(*apiURL, *tenantID, *endpointID)
-	if err := cli.Enroll(hostname, runtime.GOOS, "2.0.0"); err != nil {
-		log.Fatalf("enrollment failed: %v", err)
-	}
-
-	ticker := time.NewTicker(*interval)
-	for {
-		events := collector.CollectPlatformEvents()
-		events = append(events, collector.HealthEvent())
-		if err := cli.SendEvents(events); err != nil {
-			log.Printf("send failed: %v", err)
-		}
-		cmds, err := cli.PollCommands()
-		if err == nil && len(cmds) > 0 {
+		if cmds, err := cli.PollCommands(); err == nil && len(cmds) > 0 {
 			log.Printf("received %d command(s)", len(cmds))
 		}
+
 		<-ticker.C
 	}
 }
