@@ -4,10 +4,6 @@ import (
 	"flag"
 	"log"
 	"os"
-<<<<<<< codex/design-enterprise-behavioral-security-platform
-	"path/filepath"
-=======
->>>>>>> main
 	"runtime"
 	"time"
 
@@ -23,7 +19,6 @@ func main() {
 	flag.Parse()
 
 	hostname, _ := os.Hostname()
-<<<<<<< codex/design-enterprise-behavioral-security-platform
 	queuePath := filepath.Join(os.TempDir(), "agent_event_queue.json")
 	queue := client.NewFileQueue(queuePath)
 	cli := client.New(*apiURL, *tenantID, *endpointID)
@@ -49,7 +44,6 @@ func main() {
 			}
 		}
 
-=======
 	cli := client.New(*apiURL, *tenantID, *endpointID)
 	if err := cli.Enroll(hostname, runtime.GOOS, "2.0.0"); err != nil {
 		log.Fatalf("enrollment failed: %v", err)
@@ -62,15 +56,10 @@ func main() {
 		if err := cli.SendEvents(events); err != nil {
 			log.Printf("send failed: %v", err)
 		}
->>>>>>> main
 		cmds, err := cli.PollCommands()
 		if err == nil && len(cmds) > 0 {
 			log.Printf("received %d command(s)", len(cmds))
 		}
-<<<<<<< codex/design-enterprise-behavioral-security-platform
-
-=======
->>>>>>> main
 		<-ticker.C
 	}
 }

@@ -6,6 +6,7 @@ This file is the source of truth for feature delivery status.
 - 🔄 **In Progress** = partially implemented
 - ⏳ **To Do** = not yet implemented / production-hardening pending
 
+Last updated: 2026-02-25
 Last updated: 2026-02-24
 
 ---
@@ -30,6 +31,7 @@ Last updated: 2026-02-24
 - ✅ SQLModel persistence layer with core tables.
 - ✅ Audit log persistence model and write hooks.
 - ✅ Hourly report generation endpoint + storage model.
+- ✅ OpenAPI contract aligned to implemented `/api/v1/*` API and API-key security model.
 - 🔄 OpenAPI contract exists but needs full alignment with implemented `/api/v1/*` API and security model.
 - ⏳ Production-grade auth (OIDC/SAML/SCIM, MFA flows).
 - ⏳ Multi-tenant hard isolation controls (RLS, schema/db isolation options).
@@ -81,6 +83,8 @@ Last updated: 2026-02-24
 
 - 🔄 API foundation supports integration extension.
 - ⏳ Active Directory / Azure AD / Okta integration.
+- 🔄 SIEM webhook connector prototype implemented (generic webhook target).
+- ⏳ Vendor-specific SIEM connectors (Splunk/Sentinel/QRadar).
 - ⏳ SIEM connectors (Splunk/Sentinel/QRadar).
 - ⏳ SOAR integrations.
 - ⏳ Jira / ServiceNow incident workflows.
@@ -107,6 +111,11 @@ Last updated: 2026-02-24
 
 ## Immediate Next Priorities (Execution Queue)
 
+1. Replace synthetic health signals with real system metrics collectors.
+2. Add migration tooling + production DB configuration.
+3. Add mTLS foundation for agent-server trust bootstrap.
+4. Expand dashboard with ATT&CK + compliance panes.
+5. Add vendor-specific SIEM connectors (Splunk/Sentinel/QRadar).
 1. Align and regenerate `api/openapi.yaml` to match runtime endpoints + auth model.
 2. Replace synthetic health signals with real system metrics collectors.
 3. Add migration tooling + production DB configuration.
@@ -119,3 +128,4 @@ Last updated: 2026-02-24
 ## Change Log
 
 - 2026-02-24: Initialized tracker with current implementation status and next priorities.
+- 2026-02-25: Marked OpenAPI alignment as complete and SIEM webhook connector prototype as in progress.
