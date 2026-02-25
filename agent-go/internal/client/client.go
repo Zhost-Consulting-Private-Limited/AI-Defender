@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"endpoint-agent/internal/collector"
@@ -32,7 +34,13 @@ func (c *APIClient) SendEvents(events []collector.TelemetryEvent) error {
 }
 
 func (c *APIClient) PollCommands() ([]map[string]interface{}, error) {
-	resp, err := c.HTTPClient.Get(fmt.Sprintf("%s/api/v1/agents/%s/commands", c.BaseURL, c.EndpointID))
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/v1/agents/%s/commands", c.BaseURL, c.EndpointID), nil)
+	if err != nil {
+		return nil, err
+	}
+	setOptionalMTLSHeaders(req)
+
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +54,14 @@ func (c *APIClient) PollCommands() ([]map[string]interface{}, error) {
 
 func (c *APIClient) postJSON(path string, payload interface{}) error {
 	body, _ := json.Marshal(payload)
-	resp, err := c.HTTPClient.Post(c.BaseURL+path, "application/json", bytes.NewBuffer(body))
+	req, err := http.NewRequest(http.MethodPost, c.BaseURL+path, bytes.NewBuffer(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	setOptionalMTLSHeaders(req)
+
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -55,4 +70,15 @@ func (c *APIClient) postJSON(path string, payload interface{}) error {
 		return fmt.Errorf("api request failed: %s", resp.Status)
 	}
 	return nil
+}
+
+func setOptionalMTLSHeaders(req *http.Request) {
+	presented := strings.TrimSpace(os.Getenv("AGENT_MTLS_CERT_PRESENTED"))
+	fingerprint := strings.TrimSpace(os.Getenv("AGENT_MTLS_CERT_FINGERPRINT"))
+	if presented != "" {
+		req.Header.Set("X-Client-Cert-Presented", presented)
+	}
+	if fingerprint != "" {
+		req.Header.Set("X-Client-Cert-Fingerprint", fingerprint)
+	}
 }
