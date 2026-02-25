@@ -93,3 +93,83 @@ def test_siem_forward_webhook():
         assert payload['tenant_id'] == tenant_id
         assert payload['provider'] == 'splunk'
         assert payload['incident_count'] >= 1
+
+
+def test_agent_mtls_guardrails():
+    init_db()
+    with patch.dict('os.environ', {'AGENT_MTLS_REQUIRED': 'true'}, clear=False):
+        from backend.app import auth as auth_module
+
+        auth_module.KEY_ROLE_MAP = {'agent-key': 'agent', 'admin-key': 'admin'}
+
+        with TestClient(app) as client:
+            tenant = client.post('/api/v1/tenants?name=Acme-mTLS', headers=ADMIN).json()
+            tenant_id = tenant['id']
+
+            base_payload = {
+                'tenant_id': tenant_id,
+                'endpoint_id': 'ep-mtls-1',
+                'hostname': 'host-mtls',
+                'os_type': 'linux',
+                'agent_version': '2.2.0'
+            }
+
+            missing = client.post('/api/v1/agents/enroll', headers=AGENT, json=base_payload)
+            assert missing.status_code == 401
+
+            untrusted = client.post(
+                '/api/v1/agents/enroll',
+                headers={
+                    **AGENT,
+                    'X-Client-Cert-Presented': 'true',
+                    'X-Client-Cert-Fingerprint': 'abc123'
+                },
+                json=base_payload,
+            )
+            assert untrusted.status_code == 200
+
+    with patch.dict(
+        'os.environ',
+        {
+            'AGENT_MTLS_REQUIRED': 'true',
+            'AGENT_MTLS_TRUSTED_FINGERPRINTS': 'trusted-001'
+        },
+        clear=False,
+    ):
+        from backend.app import auth as auth_module
+
+        auth_module.KEY_ROLE_MAP = {'agent-key': 'agent', 'admin-key': 'admin'}
+
+        with TestClient(app) as client:
+            tenant = client.post('/api/v1/tenants?name=Acme-mTLS-Trusted', headers=ADMIN).json()
+            tenant_id = tenant['id']
+
+            base_payload = {
+                'tenant_id': tenant_id,
+                'endpoint_id': 'ep-mtls-2',
+                'hostname': 'host-mtls',
+                'os_type': 'linux',
+                'agent_version': '2.2.0'
+            }
+
+            rejected = client.post(
+                '/api/v1/agents/enroll',
+                headers={
+                    **AGENT,
+                    'X-Client-Cert-Presented': 'true',
+                    'X-Client-Cert-Fingerprint': 'wrong-one'
+                },
+                json=base_payload,
+            )
+            assert rejected.status_code == 401
+
+            accepted = client.post(
+                '/api/v1/agents/enroll',
+                headers={
+                    **AGENT,
+                    'X-Client-Cert-Presented': 'true',
+                    'X-Client-Cert-Fingerprint': 'trusted-001'
+                },
+                json=base_payload,
+            )
+            assert accepted.status_code == 200

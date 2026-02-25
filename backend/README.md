@@ -47,6 +47,20 @@ Create a new migration:
 alembic revision -m "describe_change"
 ```
 
+## Agent mTLS bootstrap controls
+
+The API includes a transitional mTLS guardrail for agent routes. This is designed to pair with a reverse proxy/ingress that terminates TLS and forwards validated certificate metadata as headers.
+
+- `AGENT_MTLS_REQUIRED=true` enforces certificate metadata on `agent` role API calls.
+- `AGENT_MTLS_TRUSTED_FINGERPRINTS` (comma-separated) optionally pins accepted certificate fingerprints.
+
+Expected forwarded headers:
+
+- `X-Client-Cert-Presented: true`
+- `X-Client-Cert-Fingerprint: <fingerprint>`
+
+If trusted fingerprints are not configured, any presented fingerprint is accepted when mTLS is required.
+
 ## API key roles
 
 Set env var `API_KEYS` (default below):

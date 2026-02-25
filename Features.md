@@ -111,7 +111,7 @@ Last updated: 2026-02-26
 ## Immediate Next Priorities (Execution Queue)
 
 1. ✅ Hardened production DB configuration profiles and added rollout documentation.
-2. Add mTLS foundation for agent-server trust bootstrap.
+2. ✅ Added mTLS foundation for agent-server trust bootstrap (header-based proxy integration + optional fingerprint pinning).
 3. Expand dashboard with ATT&CK + compliance panes.
 4. Add vendor-specific SIEM connectors (Splunk/Sentinel/QRadar).
 
@@ -127,3 +127,5 @@ Last updated: 2026-02-26
 - 2026-02-25: Added SIEM forwarding API endpoint and payload builder for provider-tagged webhook delivery.
 
 - 2026-02-26: Hardened backend DB environment profiles (`APP_ENV`, non-dev sqlite guardrails, SSL/pool defaults) and added rollout runbook.
+
+- 2026-02-26: Added agent mTLS bootstrap guardrails (optional enforcement + trusted fingerprint pinning) and tests.
