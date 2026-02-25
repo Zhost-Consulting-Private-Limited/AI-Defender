@@ -12,17 +12,68 @@
     <label>API Key: <input id="api_key" value="analyst-key"/></label>
     <button onclick="refreshAll()">Refresh</button>
     <button onclick="generateReport()">Generate Hourly Report</button>
-    <button onclick="refreshAll()">Refresh</button>
   </div>
+
+  <p id="errors" class="errors"></p>
+
   <div class="grid">
     <div class="card"><h3>Agents</h3><p id="agent_count">0</p></div>
     <div class="card"><h3>Open Incidents</h3><p id="open_incidents">0</p></div>
     <div class="card"><h3>Average Risk</h3><p id="avg_risk">0</p></div>
   </div>
+
   <h2>Top Risk Events</h2>
   <table id="risks"><thead><tr><th>Endpoint</th><th>Score</th><th>Reason</th><th>Time</th></tr></thead><tbody></tbody></table>
-  <h2>Incidents</h2>
-  <table id="incidents"><thead><tr><th>ID</th><th>Title</th><th>Severity</th><th>Status</th><th>Action</th></tr></thead><tbody></tbody></table>
+
+  <h2>Incident Workbench</h2>
+  <div class="controls incident-filters">
+    <label>Status:
+      <select id="incident_filter_status" onchange="refreshAll()">
+        <option value="">Any</option>
+        <option value="open">Open</option>
+        <option value="in_progress">In Progress</option>
+        <option value="closed">Closed</option>
+      </select>
+    </label>
+    <label>Severity:
+      <select id="incident_filter_severity" onchange="refreshAll()">
+        <option value="">Any</option>
+        <option value="low">Low</option>
+        <option value="medium">Medium</option>
+        <option value="high">High</option>
+      </select>
+    </label>
+    <label>Endpoint ID:
+      <input id="incident_filter_endpoint" placeholder="optional" oninput="refreshAll()" />
+    </label>
+  </div>
+
+  <div class="controls incident-bulk">
+    <label>Bulk status:
+      <select id="bulk_status">
+        <option value="in_progress">In Progress</option>
+        <option value="closed">Closed</option>
+        <option value="open">Open</option>
+      </select>
+    </label>
+    <button onclick="bulkSetIncidentStatus()">Apply to Selected Incidents</button>
+  </div>
+
+  <table id="incidents">
+    <thead>
+      <tr>
+        <th>Select</th>
+        <th>ID</th>
+        <th>Title</th>
+        <th>Endpoint</th>
+        <th>Severity</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
 <script src="/static/app.js"></script>
 </body>
 </html>

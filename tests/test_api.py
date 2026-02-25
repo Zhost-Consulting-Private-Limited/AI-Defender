@@ -173,3 +173,63 @@ def test_agent_mtls_guardrails():
                 json=base_payload,
             )
             assert accepted.status_code == 200
+
+def test_incident_workbench_filters_and_bulk_updates():
+    init_db()
+    with TestClient(app) as client:
+        tenant = client.post('/api/v1/tenants?name=Acme-Incident-Workbench', headers=ADMIN).json()
+        tenant_id = tenant['id']
+
+        enroll = client.post('/api/v1/agents/enroll', headers=AGENT, json={
+            'tenant_id': tenant_id,
+            'endpoint_id': 'ep-workbench-1',
+            'hostname': 'host-workbench-1',
+            'os_type': 'linux',
+            'agent_version': '2.3.0'
+        })
+        assert enroll.status_code == 200
+
+        create_incidents = client.post('/api/v1/events', headers=AGENT, json={
+            'tenant_id': tenant_id,
+            'endpoint_id': 'ep-workbench-1',
+            'events': [
+                {'event_type': 'credential_access', 'severity': 'high', 'payload': {'test': True}},
+                {'event_type': 'privilege_escalation', 'severity': 'high', 'payload': {'test': True}},
+                {'event_type': 'suspicious_login', 'severity': 'medium', 'payload': {'test': True}},
+            ]
+        })
+        assert create_incidents.status_code == 200
+        assert create_incidents.json()['incidents_created'] >= 2
+
+        listed = client.get(f'/api/v1/incidents?tenant_id={tenant_id}', headers=ADMIN)
+        assert listed.status_code == 200
+        incidents = listed.json()
+        assert len(incidents) >= 2
+
+        first_id = incidents[0]['id']
+        update_one = client.patch(
+            f'/api/v1/incidents/{first_id}/status',
+            headers=ADMIN,
+            json={'status': 'in_progress'},
+        )
+        assert update_one.status_code == 200
+        assert update_one.json()['incident']['status'] == 'in_progress'
+
+        filtered = client.get(f'/api/v1/incidents?tenant_id={tenant_id}&status=in_progress', headers=ADMIN)
+        assert filtered.status_code == 200
+        in_progress = filtered.json()
+        assert any(i['id'] == first_id for i in in_progress)
+
+        ids_to_close = [i['id'] for i in incidents[:2]]
+        bulk_close = client.post(
+            '/api/v1/incidents/bulk-status',
+            headers=ADMIN,
+            json={'tenant_id': tenant_id, 'incident_ids': ids_to_close, 'status': 'closed'},
+        )
+        assert bulk_close.status_code == 200
+        assert bulk_close.json()['updated'] >= 2
+
+        closed = client.get(f'/api/v1/incidents?tenant_id={tenant_id}&status=closed', headers=ADMIN)
+        assert closed.status_code == 200
+        closed_ids = {i['id'] for i in closed.json()}
+        assert set(ids_to_close).issubset(closed_ids)
