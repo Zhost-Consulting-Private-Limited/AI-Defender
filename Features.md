@@ -7,7 +7,6 @@ This file is the source of truth for feature delivery status.
 - ⏳ **To Do** = not yet implemented / production-hardening pending
 
 Last updated: 2026-02-25
-Last updated: 2026-02-24
 
 ---
 
@@ -36,7 +35,7 @@ Last updated: 2026-02-24
 - ⏳ Production-grade auth (OIDC/SAML/SCIM, MFA flows).
 - ⏳ Multi-tenant hard isolation controls (RLS, schema/db isolation options).
 - ⏳ Idempotency, pagination, rate limiting, and API versioning hardening.
-- ⏳ HA database + migration framework (Alembic) rollout.
+- ✅ Alembic migration framework scaffolded with initial baseline migration and runtime DATABASE_URL config.
 
 ## 3) Behavioral Analytics / UEBA
 
@@ -53,7 +52,7 @@ Last updated: 2026-02-24
 ## 4) File Integrity / DLP / Endpoint Health
 
 - ✅ Foundational event model path present in docs/samples.
-- 🔄 Health telemetry exists (synthetic/randomized sample currently).
+- ✅ Health telemetry now uses real Go runtime metrics (goroutines, heap, GC, CPU count).
 - ⏳ Real-time FIM for critical files with SHA-256 verification pipeline in main agent.
 - ⏳ Ransomware behavior detection pipeline.
 - ⏳ USB/external media activity monitoring.
@@ -111,17 +110,10 @@ Last updated: 2026-02-24
 
 ## Immediate Next Priorities (Execution Queue)
 
-1. Replace synthetic health signals with real system metrics collectors.
-2. Add migration tooling + production DB configuration.
-3. Add mTLS foundation for agent-server trust bootstrap.
-4. Expand dashboard with ATT&CK + compliance panes.
-5. Add vendor-specific SIEM connectors (Splunk/Sentinel/QRadar).
-1. Align and regenerate `api/openapi.yaml` to match runtime endpoints + auth model.
-2. Replace synthetic health signals with real system metrics collectors.
-3. Add migration tooling + production DB configuration.
-4. Add SIEM webhook/connector prototype (first integration).
-5. Add mTLS foundation for agent-server trust bootstrap.
-6. Expand dashboard with ATT&CK + compliance panes.
+1. Harden production DB configuration profiles and rollout documentation.
+2. Add mTLS foundation for agent-server trust bootstrap.
+3. Expand dashboard with ATT&CK + compliance panes.
+4. Add vendor-specific SIEM connectors (Splunk/Sentinel/QRadar).
 
 ---
 
@@ -129,3 +121,5 @@ Last updated: 2026-02-24
 
 - 2026-02-24: Initialized tracker with current implementation status and next priorities.
 - 2026-02-25: Marked OpenAPI alignment as complete and SIEM webhook connector prototype as in progress.
+- 2026-02-25: Replaced randomized endpoint health telemetry with runtime-derived metrics in the Go agent.
+- 2026-02-25: Added Alembic migration scaffolding, baseline schema migration, and DATABASE_URL runtime configuration.

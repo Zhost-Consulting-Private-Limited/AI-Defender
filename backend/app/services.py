@@ -1,26 +1,27 @@
 import json
 from datetime import datetime
+
 from sqlmodel import Session, select
-from .models import Event, RiskScore, Incident, Agent, Command, HourlyReport, AuditLog
+
+from .models import Agent, AuditLog, Command, Event, HourlyReport, Incident, RiskScore
+
 
 MITRE_MAP = {
-    "privilege_escalation": "T1078",
-    "mass_rename": "T1486",
-    "ransomware_signal": "T1486",
+    "privilege_escalation": "T1068",
+    "credential_access": "T1555",
+    "suspicious_login": "T1078",
+    "data_exfiltration": "T1048",
+    "windows_privilege_escalation": "T1068",
     "linux_process_chain": "T1059",
-    "windows_privilege_escalation": "T1078",
     "macos_sensitive_file_access": "T1005",
 }
-from sqlmodel import Session, select
-from .models import Event, RiskScore, Incident, Agent, Command
 
 
 def calculate_risk(event_type: str, severity: str) -> tuple[float, float, str]:
-    base = {"low": 20, "medium": 50, "high": 80, "critical": 95}.get(severity, 10)
-    if event_type in {"mass_rename", "ransomware_signal", "privilege_escalation"}:
-        base += 10
-    score = min(100.0, float(base))
-    insider = min(100.0, score * 0.8)
+    sev_weight = {"low": 20, "medium": 50, "high": 85}.get(severity.lower(), 35)
+    evt_bonus = 15 if event_type in {"privilege_escalation", "credential_access"} else 0
+    score = min(100.0, float(sev_weight + evt_bonus))
+    insider = round(min(0.99, score / 100.0), 2)
     return score, insider, f"{event_type} detected with {severity} severity"
 
 
@@ -37,17 +38,19 @@ def add_audit(session: Session, tenant_id: int, actor: str, action: str, resourc
 
 
 def process_events(session: Session, tenant_id: int, endpoint_id: str, events: list[dict]):
-    created = []
+    created_incidents: list[Incident] = []
     for e in events:
-        record = Event(
-            tenant_id=tenant_id,
-            endpoint_id=endpoint_id,
-            user_id=e.get("user_id"),
-            event_type=e["event_type"],
-            severity=e["severity"],
-            payload=json.dumps(e["payload"]),
+        session.add(
+            Event(
+                tenant_id=tenant_id,
+                endpoint_id=endpoint_id,
+                user_id=e.get("user_id"),
+                event_type=e["event_type"],
+                severity=e["severity"],
+                payload=json.dumps(e["payload"]),
+            )
         )
-        session.add(record)
+
         score, insider, reason = calculate_risk(e["event_type"], e["severity"])
         session.add(
             RiskScore(
@@ -59,41 +62,27 @@ def process_events(session: Session, tenant_id: int, endpoint_id: str, events: l
                 reason=reason,
             )
         )
-        rs = RiskScore(
-            tenant_id=tenant_id,
-            user_id=e.get("user_id"),
-            endpoint_id=endpoint_id,
-            score=score,
-            insider_probability=insider,
-            reason=reason,
-        )
-        session.add(rs)
+
         if score >= 80:
             incident = Incident(
                 tenant_id=tenant_id,
                 endpoint_id=endpoint_id,
                 title=f"High risk event: {e['event_type']}",
                 mitre_technique=MITRE_MAP.get(e["event_type"], "T1078"),
-                mitre_technique="T1078",
                 severity=e["severity"],
             )
             session.add(incident)
-            created.append(incident)
+            created_incidents.append(incident)
 
     agent = session.exec(select(Agent).where(Agent.endpoint_id == endpoint_id)).first()
     if agent:
         agent.last_seen = datetime.utcnow()
-        agent.health_score = max(1, 100 - len(created) * 10)
+        agent.health_score = max(1, 100 - len(created_incidents)*10)
         session.add(agent)
 
     add_audit(session, tenant_id, "agent", "event_ingest", "endpoint", endpoint_id)
-    agent = session.exec(select(Agent).where(Agent.endpoint_id == endpoint_id)).first()
-    if agent:
-        agent.last_seen = agent.last_seen.utcnow()
-        agent.health_score = max(1, 100 - len(created) * 10)
-        session.add(agent)
     session.commit()
-    return created
+    return created_incidents
 
 
 def dequeue_commands(session: Session, endpoint_id: str):
