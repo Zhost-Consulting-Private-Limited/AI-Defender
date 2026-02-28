@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
@@ -106,6 +107,47 @@ def summary(tenant_id: int, session: Session = Depends(get_session)):
             {"endpoint_id": r.endpoint_id, "score": r.score, "reason": r.reason, "at": r.created_at.isoformat()}
             for r in risk[:10]
         ],
+    }
+
+
+@app.get("/api/v1/dashboard/attack-compliance", dependencies=[Depends(require_role("analyst", "admin"))])
+def attack_compliance(tenant_id: int, session: Session = Depends(get_session)):
+    incidents = session.exec(select(Incident).where(Incident.tenant_id == tenant_id).order_by(Incident.created_at.desc())).all()[:200]
+    reports = session.exec(
+        select(HourlyReport).where(HourlyReport.tenant_id == tenant_id).order_by(HourlyReport.generated_at.desc())
+    ).all()[:10]
+
+    attack_counts: dict[str, int] = {}
+    severity_counts: dict[str, int] = {"low": 0, "medium": 0, "high": 0}
+    for incident in incidents:
+        attack_counts[incident.mitre_technique] = attack_counts.get(incident.mitre_technique, 0) + 1
+        severity_counts[incident.severity] = severity_counts.get(incident.severity, 0) + 1
+
+    top_attack_techniques = [
+        {"technique": technique, "count": count}
+        for technique, count in sorted(attack_counts.items(), key=lambda item: item[1], reverse=True)[:8]
+    ]
+
+    compliance_highlights: list[dict[str, str]] = []
+    for report in reports:
+        try:
+            summary = json.loads(report.summary)
+        except json.JSONDecodeError:
+            continue
+
+        compliance_highlights.append(
+            {
+                "generated_at": report.generated_at.isoformat(),
+                "recommended_action": summary.get("recommended_action", "No recommendation provided."),
+                "anomalies": str(summary.get("anomalies", 0)),
+            }
+        )
+
+    return {
+        "tenant_id": tenant_id,
+        "top_attack_techniques": top_attack_techniques,
+        "severity_breakdown": severity_counts,
+        "compliance_highlights": compliance_highlights,
     }
 
 

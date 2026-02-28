@@ -6,7 +6,7 @@ This file is the source of truth for feature delivery status.
 - 🔄 **In Progress** = partially implemented
 - ⏳ **To Do** = not yet implemented / production-hardening pending
 
-Last updated: 2026-02-26
+Last updated: 2026-02-27
 
 ---
 
@@ -112,7 +112,7 @@ Last updated: 2026-02-26
 
 1. ✅ Hardened production DB configuration profiles and added rollout documentation.
 2. ✅ Added mTLS foundation for agent-server trust bootstrap (header-based proxy integration + optional fingerprint pinning).
-3. Expand dashboard with ATT&CK + compliance panes.
+3. ✅ Expand dashboard with ATT&CK + compliance panes.
 4. Add vendor-specific SIEM connectors (Splunk/Sentinel/QRadar).
 
 ---
@@ -129,3 +129,5 @@ Last updated: 2026-02-26
 - 2026-02-26: Hardened backend DB environment profiles (`APP_ENV`, non-dev sqlite guardrails, SSL/pool defaults) and added rollout runbook.
 
 - 2026-02-26: Added agent mTLS bootstrap guardrails (optional enforcement + trusted fingerprint pinning) and tests.
+
+- 2026-02-27: Expanded SOC dashboard with ATT&CK and compliance insight panes backed by a new dashboard API endpoint.

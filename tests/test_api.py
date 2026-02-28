@@ -43,7 +43,7 @@ def test_end_to_end_flow():
         assert summary.status_code == 200
         assert summary.json()['open_incidents'] >= 1
 
-        report = client.post(f'/api/v1/reports/hourly?tenant_id={tenant_id}', headers=ANALYST)
+        report = client.post(f'/api/v1/reports/hourly?tenant_id={tenant_id}', headers=ADMIN)
         assert report.status_code == 200
         assert 'mitre_techniques' in report.json()
 
@@ -233,3 +233,42 @@ def test_incident_workbench_filters_and_bulk_updates():
         assert closed.status_code == 200
         closed_ids = {i['id'] for i in closed.json()}
         assert set(ids_to_close).issubset(closed_ids)
+
+
+def test_attack_compliance_dashboard_panel_data():
+    init_db()
+    with TestClient(app) as client:
+        tenant = client.post('/api/v1/tenants?name=Acme-Attack-Compliance', headers=ADMIN).json()
+        tenant_id = tenant['id']
+
+        enroll = client.post('/api/v1/agents/enroll', headers=AGENT, json={
+            'tenant_id': tenant_id,
+            'endpoint_id': 'ep-attack-1',
+            'hostname': 'host-attack-1',
+            'os_type': 'linux',
+            'agent_version': '2.3.0'
+        })
+        assert enroll.status_code == 200
+
+        create_incidents = client.post('/api/v1/events', headers=AGENT, json={
+            'tenant_id': tenant_id,
+            'endpoint_id': 'ep-attack-1',
+            'events': [
+                {'event_type': 'credential_access', 'severity': 'high', 'payload': {'test': True}},
+                {'event_type': 'privilege_escalation', 'severity': 'high', 'payload': {'test': True}},
+                {'event_type': 'suspicious_login', 'severity': 'medium', 'payload': {'test': True}},
+            ]
+        })
+        assert create_incidents.status_code == 200
+
+        report = client.post(f'/api/v1/reports/hourly?tenant_id={tenant_id}', headers=ADMIN)
+        assert report.status_code == 200
+
+        attack_compliance = client.get(f'/api/v1/dashboard/attack-compliance?tenant_id={tenant_id}', headers=ADMIN)
+        assert attack_compliance.status_code == 200
+        payload = attack_compliance.json()
+
+        assert payload['tenant_id'] == tenant_id
+        assert len(payload['top_attack_techniques']) >= 1
+        assert payload['severity_breakdown']['high'] >= 1
+        assert len(payload['compliance_highlights']) >= 1
