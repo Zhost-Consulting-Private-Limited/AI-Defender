@@ -23,6 +23,35 @@ async function fetchSummary(tenant) {
   return response.json();
 }
 
+
+async function fetchAttackCompliance(tenant) {
+  const response = await fetch(`/api/v1/dashboard/attack-compliance?tenant_id=${tenant}`, { headers: headers() });
+  if (!response.ok) {
+    throw new Error(`attack compliance request failed with ${response.status}`);
+  }
+  return response.json();
+}
+
+function renderAttackCompliance(data) {
+  const attackList = document.getElementById('attack_techniques');
+  attackList.innerHTML = '';
+  for (const item of (data.top_attack_techniques || [])) {
+    attackList.innerHTML += `<li>${item.technique}: ${item.count}</li>`;
+  }
+  if (!attackList.innerHTML) {
+    attackList.innerHTML = '<li>No incidents mapped yet.</li>';
+  }
+
+  const complianceList = document.getElementById('compliance_highlights');
+  complianceList.innerHTML = '';
+  for (const highlight of (data.compliance_highlights || [])) {
+    complianceList.innerHTML += `<li>${highlight.generated_at}: ${highlight.recommended_action} (anomalies=${highlight.anomalies})</li>`;
+  }
+  if (!complianceList.innerHTML) {
+    complianceList.innerHTML = '<li>No compliance highlights yet.</li>';
+  }
+}
+
 async function fetchIncidents(tenant) {
   const filters = currentIncidentFilters();
   const params = new URLSearchParams({ tenant_id: tenant });
@@ -75,9 +104,14 @@ function renderIncidents(incidents) {
 async function refreshAll() {
   try {
     const tenant = document.getElementById('tenant').value;
-    const [summary, incidents] = await Promise.all([fetchSummary(tenant), fetchIncidents(tenant)]);
+    const [summary, incidents, attackCompliance] = await Promise.all([
+      fetchSummary(tenant),
+      fetchIncidents(tenant),
+      fetchAttackCompliance(tenant),
+    ]);
     renderSummary(summary);
     renderIncidents(incidents);
+    renderAttackCompliance(attackCompliance);
     document.getElementById('errors').innerText = '';
   } catch (err) {
     document.getElementById('errors').innerText = `Failed to refresh dashboard: ${err.message}`;

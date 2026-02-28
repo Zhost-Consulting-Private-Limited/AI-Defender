@@ -7,3 +7,6 @@ th, td { border: 1px solid #ddd; padding: 8px; }
 button { cursor: pointer; }
 .errors { color: #b00020; min-height: 20px; }
 .incident-filters, .incident-bulk { margin-top: 6px; }
+
+.attack-card ul, .compliance-card ul { margin: 0; padding-left: 18px; }
+.attack-card li, .compliance-card li { margin-bottom: 6px; }
